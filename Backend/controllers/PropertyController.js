@@ -1,3 +1,5 @@
+import Property from "../models/Property.js";
+
 export const getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id).populate("owner", "email");

@@ -47,19 +47,52 @@ const HostForm = () => {
     setForm({ ...form, images: files });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    // ⚠️ basic validation
-    if (!form.title || !form.price || !form.address) {
-      alert("Please fill required fields");
-      return;
+  if (!form.title || !form.price || !form.address) {
+    alert("Please fill required fields");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+
+    formData.append("title", form.title);
+    formData.append("description", form.description);
+    formData.append("price", form.price);
+    formData.append("address", form.address);
+    formData.append("totalRooms", form.totalRooms);
+    formData.append("rules", form.rules);
+
+    form.amenities.forEach((a) => {
+      formData.append("amenities", a);
+    });
+
+    form.images.forEach((img) => {
+      formData.append("images", img);
+    });
+
+    const res = await fetch("http://localhost:5000/api/properties", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    console.log("RESPONSE:", data);
+
+    if (res.ok) {
+      alert("Property added successfully");
+    } else {
+      alert(data.message || "Something went wrong");
     }
 
-    console.log("FORM DATA:", form);
-
-    // 👉 next step: API call
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Error submitting property");
+  }
+};
 
   // ================= UI =================
 

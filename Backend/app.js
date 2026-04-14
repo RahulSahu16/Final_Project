@@ -18,7 +18,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/homes", homeRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api", aiRoutes);
-app.use("/api/properties", propertyRoutes);
+app.use("/api", propertyRoutes);
 
 // ✅ MongoDB Connection
 mongoose.connect(process.env.Mongo_DB_URL)
