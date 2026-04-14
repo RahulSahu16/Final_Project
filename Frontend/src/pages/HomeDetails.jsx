@@ -68,17 +68,13 @@ function HomeDetails() {
   // ================= SAFE DATA =================
 
   const getImageArray = () => {
-  const base = home.image
-    ? `http://localhost:3000/${home.image}`
-    : "https://via.placeholder.com/800x400?text=No+Image";
-
-  // If multiple images exist
   if (home.images && home.images.length > 0) {
-    return home.images.map(img => `http://localhost:3000/${img}`);
+    return home.images.map(
+      (img) => `http://localhost:5000/uploads/${img}`
+    );
   }
 
-  // fallback → repeat same image
-  return Array(5).fill(base);
+  return ["https://via.placeholder.com/800x400?text=No+Image"];
 };
 
 const images = getImageArray();
@@ -95,8 +91,8 @@ const images = getImageArray();
 
     {/* HEADER */}
     <div className="mb-8 border-b pb-6">
-      <h1 className="text-3xl font-bold">{home.houseName}</h1>
-      <p className="text-gray-500 mt-1">{home.city}</p>
+      <h1 className="text-3xl font-bold">{home.title}</h1>
+      <p className="text-gray-500 mt-1">{home.address}</p>
 
       {/* BASIC INFO */}
       <div className="flex gap-4 text-sm text-gray-600 mt-3">
@@ -123,7 +119,7 @@ const images = getImageArray();
 
         {/* HOST INFO */}
         <section className="border-t pt-6">
-          <HostInfo host={home.host} />
+          <HostInfo host={home.owner} />
         </section>
 
         {/* AMENITIES */}
