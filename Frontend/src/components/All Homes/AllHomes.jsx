@@ -16,6 +16,11 @@ function AllHomes() {
       setUser(JSON.parse(storedUser));
     }
 
+    const storedFavourites = localStorage.getItem("favourites");
+    if (storedFavourites) {
+      setFavourites(JSON.parse(storedFavourites));
+    }
+
     fetch("http://localhost:5000/api/properties")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch homes");
@@ -63,11 +68,11 @@ function AllHomes() {
   // FAVOURITE TOGGLE
   const handleFavourite = (homeId) => {
     setFavourites((prev) => {
-      if (prev.includes(homeId)) {
-        return prev.filter((id) => id !== homeId);
-      } else {
-        return [...prev, homeId];
-      }
+      const next = prev.includes(homeId)
+        ? prev.filter((id) => id !== homeId)
+        : [...prev, homeId];
+      localStorage.setItem("favourites", JSON.stringify(next));
+      return next;
     });
   };
 
