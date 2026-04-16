@@ -67,6 +67,13 @@ function Navbar() {
         </Link>
 
         <Link 
+          to="/Favourites" 
+          className="hover:text-gray-700 transition"
+        >
+          Favourites
+        </Link>
+
+        <Link 
           to="/host/add-home" 
           className="hover:text-gray-700 transition"
         >

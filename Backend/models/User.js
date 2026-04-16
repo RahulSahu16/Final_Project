@@ -23,7 +23,14 @@ const userSchema = new mongoose.Schema({
   roles: {
     type: [String],
     default: ["customer"]
-  }
+  },
+
+  favourites: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Property",
+    },
+  ],
 
 }, { timestamps: true });
 

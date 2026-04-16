@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
+import favouriteRoutes from "./routes/favouriteRoutes.js";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api", aiRoutes);
 app.use("/api", propertyRoutes);
 app.use("/api/booking", bookingRoutes);
+app.use("/api/Favourites", favouriteRoutes);
 
 // ✅ MongoDB Connection
 mongoose.connect(process.env.Mongo_DB_URL)
