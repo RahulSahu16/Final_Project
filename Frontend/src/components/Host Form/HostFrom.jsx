@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { createProperty, updateProperty } from "../../services/propertyService";
+import MapPicker from "../MapPicker";
 
 const HostForm = () => {
   const location = useLocation();
@@ -12,9 +14,11 @@ const HostForm = () => {
     totalRooms: "",
     amenities: [],
     rules: "",
-    images: []
+    images: [],
+    location: null,
   });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [propertyId, setPropertyId] = useState(null);
   
@@ -31,7 +35,8 @@ const HostForm = () => {
         totalRooms: property.totalRooms || "",
         amenities: property.amenities || [],
         rules: property.rules || "",
-        images: [] // Can't populate files, user needs to re-upload
+        images: [], // Can't populate files, user needs to re-upload
+        location: property.location || null,
       });
       setIsEditing(true);
       setPropertyId(property._id);
@@ -40,41 +45,6 @@ const HostForm = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const generateDescription = async () => {
-  if (!form.title || !form.address || !form.price) {
-    alert("Fill title, location and price first");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const res = await fetch("http://localhost:5000/api/generate-description", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to generate description");
-    }
-
-    setForm((prev) => ({
-      ...prev,
-      description: data.description,
-    }));
-  } catch (err) {
-    console.error(err);
-    alert("Failed to generate description");
-  } finally {
-    setLoading(false);
-  }
   };
 
   const handleAmenities = (item) => {
@@ -98,13 +68,7 @@ const HostForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      alert("Please login first");
-      return;
-    }
-
-    // Prepare form data
+    setErrorMessage("");
     const formData = new FormData();
     formData.append("title", form.title);
     formData.append("description", form.description);
@@ -112,26 +76,25 @@ const HostForm = () => {
     formData.append("address", form.address);
     formData.append("totalRooms", form.totalRooms);
     formData.append("rules", form.rules);
+    if (form.location) {
+      formData.append("location", JSON.stringify(form.location));
+    }
     form.amenities.forEach(amenity => formData.append("amenities", amenity));
     form.images.forEach(image => formData.append("images", image));
 
+    if (!form.location) {
+      setErrorMessage("Please select property location from map.");
+      return;
+    }
+
     try {
       setLoading(true);
-      const url = isEditing 
-        ? `http://localhost:5000/api/properties/${propertyId}`
-        : "http://localhost:5000/api/properties";
-      const method = isEditing ? "PUT" : "POST";
+      if (isEditing) {
+        await updateProperty(propertyId, formData);
+      } else {
+        await createProperty(formData);
+      }
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (res.ok) {
         alert(`Property ${isEditing ? 'updated' : 'submitted'} successfully!`);
         if (isEditing) {
           navigate("/AllHomes");
@@ -145,15 +108,14 @@ const HostForm = () => {
             totalRooms: "",
             amenities: [],
             rules: "",
-            images: []
+            images: [],
+            location: null,
           });
         }
-      } else {
-        alert(data.error || `Failed to ${isEditing ? 'update' : 'submit'} property`);
-      }
     } catch (err) {
-      console.log(err);
-      alert(err.message || `Error ${isEditing ? 'updating' : 'submitting'} property`);
+      setErrorMessage(
+        err.response?.data?.message || `Error ${isEditing ? "updating" : "submitting"} property`
+      );
     } finally {
       setLoading(false);
     }
@@ -168,6 +130,7 @@ const HostForm = () => {
         <h2 className="text-3xl font-bold text-white text-center">
           {isEditing ? "Edit Your Property" : "Host Your Property"}
         </h2>
+        {errorMessage ? <p className="text-red-200 text-sm">{errorMessage}</p> : null}
 
         {/* Title */}
         <input
@@ -178,6 +141,7 @@ const HostForm = () => {
           className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white placeholder:text-gray-200 border border-[#b5ae9d]/30 focus:outline-none focus:ring-2 focus:ring-[#b5ae9d]"
           onChange={handleChange}
         />
+        
 
 
         {/* Price */}
@@ -186,7 +150,7 @@ const HostForm = () => {
           name="price"
           value={form.price}
           placeholder="Price per night"
-          className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white placeholder:text-gray-200 border border-[#b5ae9d]/30 focus:outline-none focus:ring-2 focus:ring-[#b5ae9d]"
+          className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white border border-[#b5ae9d]/30"
           onChange={handleChange}
         />
 
@@ -199,6 +163,30 @@ const HostForm = () => {
           className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white placeholder:text-gray-200 border border-[#b5ae9d]/30 focus:outline-none focus:ring-2 focus:ring-[#b5ae9d]"
           onChange={handleChange}
         />
+
+        {/* 🗺️ MAP BELOW LOCATION */}
+        <div>
+          <p className="text-white mb-2">Pin Location on Map</p>
+
+          <div className="h-[200px] rounded-xl overflow-hidden">
+            <MapPicker
+              value={form.location}
+              onChange={(value) =>
+                setForm((prev) => ({ ...prev, location: value }))
+              }
+            />
+          </div>
+
+          {form.location ? (
+            <p className="text-xs text-white mt-2">
+              Selected: {form.location.lat}, {form.location.lng}
+            </p>
+          ) : (
+            <p className="text-xs text-red-200 mt-2">
+              Click on map to select exact location.
+            </p>
+          )}
+        </div>
 
         {/* Rooms */}
         <input
@@ -261,16 +249,6 @@ const HostForm = () => {
           className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white placeholder:text-gray-200 border border-[#b5ae9d]/30 focus:outline-none focus:ring-2 focus:ring-[#b5ae9d]"
           onChange={handleChange}
         />
-        
-        <button
-          type="button"
-          onClick={generateDescription}
-          disabled={loading}
-          className="bg-[#836f39] text-white px-4 py-2 rounded-lg hover:bg-[#6f5e30] transition disabled:opacity-50"
-        >
-          {loading ? "Generating..." : "✨ Generate with AI"}
-        </button>
-
         {/* Submit */}
         <button 
           type="submit"

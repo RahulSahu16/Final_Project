@@ -1,61 +1,22 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { sendOtp, verifyOtp, signup } from "../../api/axios";
+import { register } from "../../services/authService";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function Signup({ switchToLogin }) {
-  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const handleSendOtp = async () => {
-    if (!email) {
-      setMessage("Please enter your email address.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await sendOtp(email);
-      setMessage(data.message || "OTP has been sent.");
-      setStep(2);
-    } catch (error) {
-      setMessage(
-        error.response?.data?.message || error.message || "Failed to send OTP."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp) {
-      setMessage("Please enter the OTP.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const data = await verifyOtp(email, otp);
-      setMessage(data.message || "OTP verified.");
-      setStep(3);
-    } catch (error) {
-      setMessage(
-        error.response?.data?.message || error.message || "Failed to verify OTP."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { login } = useAuth();
 
   const handleCreateAccount = async () => {
-    if (!name || !password || !confirmPassword) {
-      setMessage("Please fill in name and both password fields.");
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !name || !password || !confirmPassword) {
+      setMessage("Please complete all required fields.");
       return;
     }
 
@@ -66,22 +27,31 @@ export default function Signup({ switchToLogin }) {
 
     try {
       setLoading(true);
-      const data = await signup(name, email, password);
-      localStorage.setItem("authUser", JSON.stringify(data.user));
-      localStorage.setItem("authToken", data.token);
-      window.dispatchEvent(new Event("authChanged"));
+      const data = await register({ name, email: normalizedEmail, password });
+      if (!data?.token || !data?.user) {
+        throw new Error("Unexpected signup response from server");
+      }
+      login(data);
       navigate("/");
     } catch (error) {
-      setMessage(
-        error.response?.data?.message || error.message || "Failed to create account."
-      );
+      const serverMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to create account.";
+      setMessage(serverMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const onSubmit = (event) => {
+    event.preventDefault();
+    handleCreateAccount();
+  };
+
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
+    <form onSubmit={onSubmit} className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
 
       <h2 className="text-2xl font-semibold text-center mb-6">
         Signup
@@ -93,51 +63,14 @@ export default function Signup({ switchToLogin }) {
         </div>
       )}
 
-      {/* STEP 1 — EMAIL */}
-      {step === 1 && (
-        <>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            className="w-full px-4 py-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <button
-            onClick={handleSendOtp}
-            disabled={loading}
-            className="w-full bg-[#836f39] text-white py-2 rounded-lg hover:bg-[#493a0f] transition disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Sending OTP..." : "Send OTP"}
-          </button>
-        </>
-      )}
-
-      {/* STEP 2 — OTP */}
-      {step === 2 && (
-        <>
-          <input
-            type="text"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            placeholder="Enter OTP"
-            className="w-full px-4 py-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <button
-            onClick={handleVerifyOtp}
-            disabled={loading}
-            className="w-full bg-[#836f39] text-white py-2 rounded-lg hover:bg-[#493a0f] transition disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? "Verifying OTP..." : "Verify OTP"}
-          </button>
-        </>
-      )}
-
-      {/* STEP 3 — PASSWORD */}
-      {step === 3 && (
-        <>
+      <>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          className="w-full px-4 py-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
           <input
             type="text"
             value={name}
@@ -163,14 +96,13 @@ export default function Signup({ switchToLogin }) {
           />
 
           <button
-            onClick={handleCreateAccount}
+            type="submit"
             disabled={loading}
             className="w-full bg-[#836f39] text-white py-2 rounded-lg hover:bg-[#493a0f] transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Creating account..." : "Create Account"}
           </button>
-        </>
-      )}
+      </>
 
       {/* Divider */}
       <div className="flex items-center my-5">
@@ -198,6 +130,6 @@ export default function Signup({ switchToLogin }) {
           Login
         </span>
       </p>
-    </div>
+    </form>
   );
 }

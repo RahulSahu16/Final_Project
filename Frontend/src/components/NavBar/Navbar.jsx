@@ -1,31 +1,42 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import logo from "../../assets/logo.png";
+import { useAuth } from "../../hooks/useAuth";
+import { becomeHost } from "../../services/authService";
 
 function Navbar() {
-  const [user, setUser] = useState(null);
+  const { user, isAuthenticated, logout, login } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("authUser");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
+  const handleAddStay = async () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
     }
 
-    const onAuthChanged = () => {
-      const updatedUser = localStorage.getItem("authUser");
-      setUser(updatedUser ? JSON.parse(updatedUser) : null);
-    };
+    // ✅ If already host → go directly
+    if (user?.roles?.includes("host")) {
+      navigate("/addstay");
+      return;
+    }
 
-    window.addEventListener("authChanged", onAuthChanged);
-    return () => window.removeEventListener("authChanged", onAuthChanged);
-  }, []);
+    // ✅ Upgrade to host
+    try {
+      const response = await becomeHost();
 
-  const handleLogout = () => {
-    localStorage.removeItem("authUser");
-    localStorage.removeItem("authToken");
-    setUser(null);
-    navigate("/");
+      if (response?.user) {
+        const token = localStorage.getItem("authToken");
+        login({ user: response.user, token });
+      }
+
+      navigate("/addstay"); // ✅ FIXED
+    } catch {
+      alert("Unable to enable host access. Please login again.");
+    }
   };
 
   return (
@@ -52,33 +63,25 @@ function Navbar() {
       {/* Links */}
       <div className="flex items-center gap-6 text-black font-medium">
         
-        <Link 
-          to="/" 
-          className="hover:text-gray-700 transition"
-        >
+        <Link to="/" className="hover:text-gray-700 transition">
           Home
         </Link>
 
-        <Link 
-          to="/AllHomes" 
-          className="hover:text-gray-700 transition"
-        >
+        <Link to="/AllHomes" className="hover:text-gray-700 transition">
           All Homes
         </Link>
 
-        <Link 
-          to="/Favourites" 
-          className="hover:text-gray-700 transition"
-        >
+        <Link to="/Favourites" className="hover:text-gray-700 transition">
           Favourites
         </Link>
 
-        <Link 
-          to="/host/add-home" 
+        <button
+          type="button"
+          onClick={handleAddStay}
           className="hover:text-gray-700 transition"
         >
           Add Stay
-        </Link>
+        </button>
 
         {user ? (
           <div className="flex items-center gap-3">

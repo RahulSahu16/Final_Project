@@ -1,31 +1,29 @@
 import { useEffect, useState } from "react";
 import HomeCard from "../components/Homepage/HomepageCard";
+import { useFavourites } from "../hooks/useFavourites";
+import { getProperties } from "../services/propertyService";
 
 function FavouritesPage() {
   const [homes, setHomes] = useState([]);
-  const [favourites, setFavourites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { favourites } = useFavourites();
 
   useEffect(() => {
-    const storedFavourites = localStorage.getItem("favourites");
-    if (storedFavourites) {
-      setFavourites(JSON.parse(storedFavourites));
-    }
+    getProperties()
+      .then((homesData) => {
+        const normalizedHomes = homesData.map((home) => ({
+          ...home,
+          _id: home?._id?.toString?.() || String(home._id),
+        }));
 
-    fetch("http://localhost:5000/api/properties")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch homes");
-        return res.json();
+        setHomes(normalizedHomes);
       })
-      .then((data) => setHomes(data))
       .catch((err) => setError(err.message || "Failed to load favourites"))
       .finally(() => setLoading(false));
   }, []);
 
-  const favouriteHomes = homes.filter((home) =>
-    favourites.includes(home._id)
-  );
+  const favouriteHomes = homes.filter((home) => favourites.includes(home._id));
 
   if (loading) {
     return (
@@ -46,7 +44,9 @@ function FavouritesPage() {
   return (
     <div className="min-h-screen py-10 bg-gray-50">
       <div className="max-w-6xl mx-auto px-6">
-        <h1 className="text-3xl font-bold mb-6 text-center">Favourite Homes</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">
+          Favourite Homes
+        </h1>
 
         {favouriteHomes.length === 0 ? (
           <div className="text-center text-gray-600">

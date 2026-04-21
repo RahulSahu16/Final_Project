@@ -2,98 +2,58 @@ import { useEffect, useState } from "react";
 import HomeCard from "../Homepage/HomepageCard";
 import { useNavigate } from "react-router-dom";
 import { FaEdit, FaTrash, FaHeart } from "react-icons/fa";
+import { deleteProperty, getProperties } from "../../services/propertyService";
+import { useAuth } from "../../hooks/useAuth";
+import { useFavourites } from "../../hooks/useFavourites";
 
 function AllHomes() {
   const [homes, setHomes] = useState([]);
-  const [user, setUser] = useState(null);
-  const [favourites, setFavourites] = useState([]); // ✅ FIXED (moved inside)
-
+  const [error, setError] = useState("");
+  const { user } = useAuth();
+  const { favourites, toggleFavourite } = useFavourites();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("authUser");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-
-    const storedFavourites = localStorage.getItem("favourites");
-    if (storedFavourites) {
-      setFavourites(JSON.parse(storedFavourites));
-    }
-
-    fetch("http://localhost:5000/api/properties")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch homes");
-        return res.json();
-      })
-      .then((data) => setHomes(data))
-      .catch((err) => {
-        console.log(err);
+    getProperties()
+      .then(setHomes)
+      .catch(() => {
         setHomes([]);
+        setError("Failed to fetch homes");
       });
   }, []);
 
-  // DELETE
   const handleDelete = async (homeId) => {
     if (!window.confirm("Delete this property?")) return;
 
-    const token = localStorage.getItem("authToken");
-
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/properties/${homeId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (res.ok) {
-        setHomes((prev) => prev.filter((h) => h._id !== homeId));
-      } else {
-        alert("Delete failed");
-      }
-    } catch (err) {
-      console.log(err);
+      await deleteProperty(homeId);
+      setHomes((prev) => prev.filter((h) => h._id !== homeId));
+    } catch (_err) {
+      setError("Delete failed");
     }
   };
 
-  // EDIT
   const handleEdit = (home) => {
-    navigate("/host/add-home", { state: { property: home } });
-  };
-
-  // FAVOURITE TOGGLE
-  const handleFavourite = (homeId) => {
-    setFavourites((prev) => {
-      const next = prev.includes(homeId)
-        ? prev.filter((id) => id !== homeId)
-        : [...prev, homeId];
-      localStorage.setItem("favourites", JSON.stringify(next));
-      return next;
-    });
+    navigate("/addstay", { state: { property: home } });
   };
 
   return (
-    <div>
+    <div className="bg-[#b5ae9d]">
       <h1 className="text-2xl font-semibold mb-6 bg-black text-white p-4 text-center mt-4">
         All Homes
       </h1>
+      {error ? <p className="text-center text-red-700">{error}</p> : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
         {homes.map((home) => {
-          const isOwner =
-            user && home.owner?.email === user.email;
+          const isOwner = user && home.owner?.email === user.email;
+          const isFavourite = favourites.includes(String(home._id));
 
           return (
             <div key={home._id} className="relative">
               <HomeCard home={home} type="full" />
 
               <div className="flex justify-center gap-3 mt-2">
-                
-                {/* EDIT */}
                 {isOwner && (
                   <button
                     onClick={() => handleEdit(home)}
@@ -103,12 +63,11 @@ function AllHomes() {
                   </button>
                 )}
 
-                {/* FAVOURITE */}
                 {user && (
                   <button
-                    onClick={() => handleFavourite(home._id)}
+                    onClick={() => toggleFavourite(home._id)}
                     className={`p-2 rounded-full transition ${
-                      favourites.includes(home._id)
+                      isFavourite
                         ? "bg-red-500 text-white"
                         : "bg-gray-200 text-gray-600"
                     }`}
@@ -117,7 +76,6 @@ function AllHomes() {
                   </button>
                 )}
 
-                {/* DELETE */}
                 {isOwner && (
                   <button
                     onClick={() => handleDelete(home._id)}

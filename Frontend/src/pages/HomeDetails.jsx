@@ -6,6 +6,9 @@ import ImageGallery from "../components/homeDetails/ImageGallery";
 
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { getPropertyById } from "../services/propertyService";
+import { createBooking, createPaymentOrder, verifyPayment } from "../services/bookingService";
+import PropertyMapView from "../components/PropertyMapView";
 
 function HomeDetails() {
   const { homeId } = useParams();
@@ -16,6 +19,8 @@ function HomeDetails() {
 
   // 👉 NEW STATE
   const [selectedRooms, setSelectedRooms] = useState(1);
+  const [checkIn, setCheckIn] = useState("");
+  const [checkOut, setCheckOut] = useState("");
 
   // ================= FETCH =================
   useEffect(() => {
@@ -24,15 +29,7 @@ function HomeDetails() {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(
-          `http://localhost:5000/api/properties/${homeId}`
-        );
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch home");
-        }
-
-        const data = await res.json();
+        const data = await getPropertyById(homeId);
         setHome(data);
       } catch (err) {
         console.error("Fetch error:", err.message);
@@ -50,98 +47,52 @@ function HomeDetails() {
     try {
       if (!home) return;
 
-      const token = localStorage.getItem("authToken");
-      if (!token) {
+      if (!checkIn || !checkOut) {
+        alert("Please select check-in and check-out dates");
+        return;
+      }
+
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+
+      if (checkInDate >= checkOutDate) {
+        alert("Check-out date must be after check-in date");
+        return;
+      }
+
+      if (!localStorage.getItem("authToken")) {
         alert("Please login first");
         return;
       }
 
-      // Step 1: Create booking
-      const bookingRes = await fetch("http://localhost:5000/api/booking/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          propertyId: home._id,
-          roomsBooked: Number(selectedRooms),
-        }),
+      const booking = await createBooking({
+        propertyId: home._id,
+        checkIn: checkInDate.toISOString(),
+        checkOut: checkOutDate.toISOString(),
+        roomsBooked: Number(selectedRooms),
       });
 
-      const bookingData = await bookingRes.json();
-
-      if (!bookingRes.ok) {
-        throw new Error(bookingData.message || "Booking failed");
-      }
-
-      console.log("Booking created:", bookingData);
-
-      const bookingId = bookingData.booking._id;
-      const totalAmount = bookingData.booking.totalPrice;
-
-      // Step 2: Initiate Razorpay Payment
-      const paymentRes = await fetch("http://localhost:5000/api/booking/initiate-payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          bookingId,
-          amount: totalAmount,
-        }),
+      const paymentOrder = await createPaymentOrder({
+        bookingId: booking._id,
       });
-
-      const paymentData = await paymentRes.json();
-
-      console.log("💳 Payment Response Status:", paymentRes.status);
-      console.log("💳 Payment Response Data:", paymentData);
-
-      if (!paymentRes.ok) {
-        const errorMsg = paymentData.message || paymentData.details || "Payment initiation failed";
-        console.error("❌ Payment Error Details:", errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      console.log("Payment order created:", paymentData);
 
       // Step 3: Open Razorpay Checkout
       const options = {
-        key: paymentData.order.key_id,
-        amount: paymentData.order.amount,
-        currency: paymentData.order.currency,
+        key: paymentOrder.key,
+        amount: paymentOrder.amount,
+        currency: paymentOrder.currency,
         name: "Dream Stays",
         description: `Booking for ${home.title}`,
-        order_id: paymentData.order.id,
+        order_id: paymentOrder.orderId,
         handler: async function (response) {
-          console.log("Payment response:", response);
-
-          // Step 4: Verify payment on backend
-          const verifyRes = await fetch("http://localhost:5000/api/booking/verify-payment", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              bookingId,
-              orderId: paymentData.order.id,
-              paymentId: response.razorpay_payment_id,
-              signature: response.razorpay_signature,
-            }),
+          await verifyPayment({
+            bookingId: booking._id,
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
           });
 
-          const verifyData = await verifyRes.json();
-
-          if (!verifyRes.ok) {
-            alert("Payment verification failed: " + verifyData.message);
-            return;
-          }
-
           alert("Booking confirmed! Payment successful 🎉");
-          console.log("Payment verified:", verifyData);
-          // Redirect or refresh
           setTimeout(() => window.location.href = "/", 2000);
         },
         prefill: {
@@ -256,6 +207,16 @@ function HomeDetails() {
               />
             </section>
 
+            <section className="bg-white p-6 rounded-2xl shadow-sm">
+              <h2 className="text-xl font-semibold mb-3">Location</h2>
+              <p className="text-gray-700 mb-4">{home.address}</p>
+              {home.location ? (
+                <PropertyMapView location={home.location} address={home.address} />
+              ) : (
+                <p className="text-sm text-gray-500">Map location not available for this property.</p>
+              )}
+            </section>
+
           </div>
 
           {/* RIGHT - BOOKING */}
@@ -277,8 +238,22 @@ function HomeDetails() {
 
               {/* DATE */}
               <div className="mt-5 space-y-3">
-                <input type="date" className="w-full border rounded-xl p-3" />
-                <input type="date" className="w-full border rounded-xl p-3" />
+                <input
+                  type="date"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full border rounded-xl p-3"
+                  placeholder="Check-in date"
+                />
+                <input
+                  type="date"
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  min={checkIn || new Date().toISOString().split('T')[0]}
+                  className="w-full border rounded-xl p-3"
+                  placeholder="Check-out date"
+                />
 
                 {/* 👉 ROOMS INPUT */}
                 <input

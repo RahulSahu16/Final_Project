@@ -1,15 +1,14 @@
 import express from "express";
-import { signup, login, becomeHost, sendOTP, verifyOTP } from "../controllers/authController.js";
+import { register, login, becomeHost } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { testEmail } from "../controllers/authController.js";
+import validateRequest from "../middleware/validateRequest.js";
+import { registerSchema, loginSchema } from "../validations/authValidation.js";
 
 const router = express.Router();
 
-router.post("/signup", signup);
-router.post("/login", login);
-router.post("/send-otp", sendOTP);
-router.post("/verify-otp", verifyOTP);
-router.get("/test-mail", testEmail);
+router.post("/register", validateRequest(registerSchema), register);
+router.post("/signup", validateRequest(registerSchema), register);
+router.post("/login", validateRequest(loginSchema), login);
 router.patch("/become-host", protect, becomeHost);
 
 export default router;

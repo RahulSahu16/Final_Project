@@ -1,63 +1,24 @@
 import express from "express";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
 import cors from "cors";
-import homeRoutes from "./routes/homeRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import aiRoutes from "./routes/aiRoutes.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
-import favouriteRoutes from "./routes/favouriteRoutes.js";
-
-dotenv.config();
+import { errorHandler } from "./middleware/errorMiddleware.js";
 
 const app = express();
 
-// middleware
-app.use(cors());
+app.use(cors({ origin: process.env.CLIENT_URL || "*", credentials: true }));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
-app.use("/api/homes", homeRoutes);
+
 app.use("/api/auth", authRoutes);
-app.use("/api", aiRoutes);
 app.use("/api", propertyRoutes);
-app.use("/api/booking", bookingRoutes);
-app.use("/api/Favourites", favouriteRoutes);
+app.use("/api/bookings", bookingRoutes);
 
-// ✅ MongoDB Connection
-mongoose.connect(process.env.Mongo_DB_URL)
-  .then(() => {
-    console.log("✅ MongoDB Connected");
-    console.log("👉 DB Name:", mongoose.connection.name);
-  })
-  .catch((err) => {
-    console.log("❌ Mongo Error:", err);
-  });
-
-// ✅ Simple Test Route
 app.get("/", (req, res) => {
-  res.send("API is running...");
+  res.status(200).json({ success: true, message: "API is running", data: {} });
 });
 
-// ✅ Test DB Insert Route
-app.get("/test-db", async (req, res) => {
-  try {
-    const testSchema = new mongoose.Schema({ name: String });
-    const Test = mongoose.model("Test", testSchema);
+app.use(errorHandler);
 
-    const data = await Test.create({ name: "Rahul Test Data" });
-
-    res.json({
-      message: "Data inserted successfully",
-      data,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// server start
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port https://localhost:${PORT}`);
-});
+export default app;

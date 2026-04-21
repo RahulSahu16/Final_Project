@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import { login } from "../../api/axios";
+import { login as loginApi } from "../../services/authService";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function Login({ switchToSignup }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -10,32 +11,42 @@ export default function Login({ switchToSignup }) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !password) {
       setMessage("Please enter email and password.");
       return;
     }
 
     try {
       setLoading(true);
-      const data = await login(email, password);
-      localStorage.setItem("authUser", JSON.stringify(data.user));
-      localStorage.setItem("authToken", data.token);
-      localStorage.setItem("userEmail", data.user.email);
-      window.dispatchEvent(new Event("authChanged"));
+      const data = await loginApi({ email: normalizedEmail, password });
+      if (!data?.token || !data?.user) {
+        throw new Error("Unexpected login response from server");
+      }
+      login(data);
       navigate("/");
     } catch (error) {
-      setMessage(
-        error.response?.data?.message || error.message || "Login failed."
-      );
+      const serverMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Login failed.";
+      setMessage(serverMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const onSubmit = (event) => {
+    event.preventDefault();
+    handleLogin();
+  };
+
   return (
-    <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
+    <form onSubmit={onSubmit} className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
 
       {/* Heading */}
       <h2 className="text-2xl font-semibold text-center mb-6">
@@ -87,7 +98,7 @@ export default function Login({ switchToSignup }) {
 
       {/* Login Button */}
       <button
-        onClick={handleLogin}
+        type="submit"
         disabled={loading}
         className="w-full bg-[#836f39] text-white py-2 rounded-lg hover:bg-[#493a0f] transition disabled:cursor-not-allowed disabled:opacity-60"
       >
@@ -121,6 +132,6 @@ export default function Login({ switchToSignup }) {
           Signup
         </span>
       </p>
-    </div>
+    </form>
   );
 }
