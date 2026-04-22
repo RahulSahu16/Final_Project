@@ -6,33 +6,67 @@ import ImageGallery from "../components/homeDetails/ImageGallery";
 
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getPropertyById } from "../services/propertyService";
-import { createBooking, createPaymentOrder, verifyPayment } from "../services/bookingService";
+import { getProperties, getPropertyById } from "../services/propertyService";
+import {
+  createBooking,
+  createPaymentOrder,
+  verifyPayment,
+} from "../services/bookingService";
 import PropertyMapView from "../components/PropertyMapView";
 
 function HomeDetails() {
   const { homeId } = useParams();
 
   const [home, setHome] = useState(null);
+  const [similarHomes, setSimilarHomes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 👉 NEW STATE
   const [selectedRooms, setSelectedRooms] = useState(1);
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
 
-  // ================= FETCH =================
   useEffect(() => {
     const fetchHome = async () => {
       try {
         setLoading(true);
-        setError(null);
+        const [data, properties] = await Promise.all([
+          getPropertyById(homeId),
+          getProperties(),
+        ]);
 
-        const data = await getPropertyById(homeId);
         setHome(data);
+
+        const currentPrice = Number(data.price) || 0;
+        const currentAddress = (data.address || "").toLowerCase();
+
+        const relatedHomes = properties
+          .filter((item) => String(item._id) !== String(data._id))
+          .map((item) => {
+            const itemPrice = Number(item.price) || 0;
+            const itemAddress = (item.address || "").toLowerCase();
+            const sharedAddressToken =
+              currentAddress &&
+              itemAddress &&
+              currentAddress
+                .split(/[,\s]+/)
+                .filter((part) => part.length > 2)
+                .some((part) => itemAddress.includes(part));
+
+            const priceGap = Math.abs(itemPrice - currentPrice);
+            const priceScore =
+              priceGap <= 1000 ? 2 : priceGap <= 2500 ? 1 : 0;
+
+            return {
+              ...item,
+              similarityScore: (sharedAddressToken ? 2 : 0) + priceScore,
+            };
+          })
+          .sort((a, b) => b.similarityScore - a.similarityScore)
+          .slice(0, 3);
+
+        setSimilarHomes(relatedHomes);
       } catch (err) {
-        console.error("Fetch error:", err.message);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -42,28 +76,16 @@ function HomeDetails() {
     fetchHome();
   }, [homeId]);
 
-  // ================= RESERVE =================
   const handleReserve = async () => {
     try {
-      if (!home) return;
-
-      if (!checkIn || !checkOut) {
-        alert("Please select check-in and check-out dates");
-        return;
-      }
+      if (!checkIn || !checkOut) return alert("Select check-in & check-out");
 
       const checkInDate = new Date(checkIn);
       const checkOutDate = new Date(checkOut);
 
-      if (checkInDate >= checkOutDate) {
-        alert("Check-out date must be after check-in date");
-        return;
-      }
+      if (checkInDate >= checkOutDate) return alert("Invalid date range");
 
-      if (!localStorage.getItem("authToken")) {
-        alert("Please login first");
-        return;
-      }
+      if (!localStorage.getItem("authToken")) return alert("Login first");
 
       const booking = await createBooking({
         propertyId: home._id,
@@ -76,13 +98,12 @@ function HomeDetails() {
         bookingId: booking._id,
       });
 
-      // Step 3: Open Razorpay Checkout
       const options = {
         key: paymentOrder.key,
         amount: paymentOrder.amount,
         currency: paymentOrder.currency,
-        name: "Dream Stays",
-        description: `Booking for ${home.title}`,
+        name: "CozyStay",
+        description: home.title,
         order_id: paymentOrder.orderId,
         handler: async function (response) {
           await verifyPayment({
@@ -92,185 +113,124 @@ function HomeDetails() {
             razorpay_signature: response.razorpay_signature,
           });
 
-          alert("Booking confirmed! Payment successful 🎉");
-          setTimeout(() => window.location.href = "/", 2000);
+          alert("Booking confirmed");
+          window.location.href = "/";
         },
-        prefill: {
-          email: localStorage.getItem("userEmail") || "",
-        },
-        theme: {
-          color: "#000000",
-        },
+        theme: { color: "#6366F1" },
       };
 
-      const window_razorpay = new window.Razorpay(options);
-      window_razorpay.open();
+      new window.Razorpay(options).open();
     } catch (err) {
-      console.error(err);
       alert(err.message);
     }
   };
 
-  // ================= UI STATES =================
-  if (loading)
-    return (
-      <div className="text-center mt-20 text-lg font-semibold">
-        Loading home details...
-      </div>
-    );
+  if (loading) return <div className="text-center mt-20">Loading...</div>;
 
-  if (error)
-    return (
-      <div className="text-center mt-20 text-red-500 font-semibold">
-        {error}
-      </div>
-    );
+  if (error) {
+    return <div className="text-center mt-20 text-red-500">{error}</div>;
+  }
 
-  if (!home)
-    return (
-      <div className="text-center mt-20 text-gray-500">
-        No home data found
-      </div>
-    );
+  if (!home) return null;
 
-  // ================= IMAGES =================
   const images =
-    home.images && home.images.length > 0
+    home.images?.length > 0
       ? home.images.map((img) =>
           img.startsWith("http")
             ? img
             : `http://localhost:5000/uploads/${img}`
         )
-      : ["https://via.placeholder.com/800x400?text=No+Image"];
+      : ["https://via.placeholder.com/800"];
 
-  // ================= MAIN UI =================
   return (
     <div className="bg-gray-50 min-h-screen py-10">
-      <div className="max-w-6xl mx-auto px-6">
-
-        {/* IMAGE */}
+      <div className="max-w-7xl mx-auto px-6">
         <div className="rounded-3xl overflow-hidden shadow-lg">
           <ImageGallery images={images} />
         </div>
 
-        {/* HEADER */}
-        <div className="mt-8 flex flex-col gap-3">
-          <h1 className="text-4xl font-extrabold text-gray-900">
-            {home.title}
-          </h1>
+        <div className="mt-8 mb-6">
+          <h1 className="text-3xl md:text-4xl font-semibold">{home.title}</h1>
 
-          <p className="text-gray-500 text-lg">{home.address}</p>
+          <p className="text-gray-500 mt-2">{home.address}</p>
 
-          <div className="flex flex-wrap gap-4 text-sm text-gray-700 mt-2">
-            <span>👤 {home.guests || 4} guests</span>
-            <span>🛏 {home.bedrooms || 2} bedrooms</span>
-            <span>🛌 {home.beds || 2} beds</span>
-            <span>🛁 {home.bathrooms || 1} bath</span>
+          <div className="flex gap-6 text-sm text-gray-600 mt-3">
+            <span>{home.guests || 4} guests</span>
+            <span>{home.bedrooms || 2} bedrooms</span>
+            <span>{home.beds || 2} beds</span>
+            <span>{home.bathrooms || 1} baths</span>
           </div>
         </div>
 
-        {/* GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-10">
-
-          {/* LEFT */}
-          <div className="md:col-span-2 space-y-10">
-
-            <section className="bg-white p-6 rounded-2xl shadow-sm">
-              <h2 className="text-xl font-semibold mb-3">
-                About this place
-              </h2>
-              <p className="text-gray-700 leading-relaxed">
-                {home.description}
-              </p>
+        <div className="grid md:grid-cols-3 gap-10">
+          <div className="md:col-span-2 space-y-8">
+            <section className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
+              <h2 className="text-xl font-semibold mb-3">About this place</h2>
+              <p className="text-gray-700 leading-relaxed">{home.description}</p>
             </section>
 
-            <section className="bg-white p-6 rounded-2xl shadow-sm">
+            <section className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
               <HostInfo host={home.owner} />
             </section>
 
-            <section className="bg-white p-6 rounded-2xl shadow-sm">
-              <Amenities
-                amenities={
-                  home.amenities || ["WiFi", "AC", "Kitchen", "Parking"]
-                }
-              />
+            <section className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
+              <Amenities amenities={home.amenities || []} />
             </section>
 
-            <section className="bg-white p-6 rounded-2xl shadow-sm">
-              <Reviews
-                reviews={
-                  home.reviews || [
-                    { user: "Rahul", comment: "Great stay!" },
-                    { user: "Amit", comment: "Very clean." }
-                  ]
-                }
-              />
+            <section className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
+              <Reviews reviews={home.reviews || []} />
             </section>
 
-            <section className="bg-white p-6 rounded-2xl shadow-sm">
+            <section className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition">
               <h2 className="text-xl font-semibold mb-3">Location</h2>
-              <p className="text-gray-700 mb-4">{home.address}</p>
+              <p className="text-gray-600 mb-4">{home.address}</p>
+
               {home.location ? (
                 <PropertyMapView location={home.location} address={home.address} />
               ) : (
-                <p className="text-sm text-gray-500">Map location not available for this property.</p>
+                <p className="text-sm text-gray-400">Map not available</p>
               )}
             </section>
-
           </div>
 
-          {/* RIGHT - BOOKING */}
           <div className="sticky top-24 h-fit">
-            <div className="bg-white rounded-3xl shadow-xl p-6 border">
-
-              {/* PRICE */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-lg">
               <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-bold text-gray-900">
-                  ₹{home.price}
-                </h2>
-                <span className="text-sm text-gray-500">/ night</span>
+                <h2 className="text-2xl font-semibold">Rs {home.price}</h2>
+                <span className="text-gray-500 text-sm">/ night</span>
               </div>
 
-              {/* ROOMS LEFT */}
-              <p className="text-red-500 text-sm mt-2 font-medium">
-                ⚡ Only {home.totalRooms || 3} rooms left
+              <p className="text-red-500 text-sm mt-1 font-medium">
+                Only {home.totalRooms || 3} rooms left
               </p>
 
-              {/* DATE */}
               <div className="mt-5 space-y-3">
                 <input
                   type="date"
                   value={checkIn}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full border rounded-xl p-3"
-                  placeholder="Check-in date"
+                  className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
+
                 <input
                   type="date"
                   value={checkOut}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  min={checkIn || new Date().toISOString().split('T')[0]}
-                  className="w-full border rounded-xl p-3"
-                  placeholder="Check-out date"
+                  className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
 
-                {/* 👉 ROOMS INPUT */}
                 <input
                   type="number"
                   min="1"
-                  max={home.totalRooms || 1}
                   value={selectedRooms}
                   onChange={(e) => setSelectedRooms(e.target.value)}
-                  className="w-full border rounded-xl p-3"
-                  placeholder="Rooms"
+                  className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
 
-              {/* BUTTON */}
               <button
                 onClick={handleReserve}
-                className="bg-black hover:bg-gray-900 text-white w-full py-3 mt-6 rounded-xl font-semibold text-lg"
+                className="w-full py-3 mt-6 rounded-xl font-semibold text-white bg-indigo-500 hover:bg-indigo-600 transition active:scale-95"
               >
                 Reserve Now
               </button>
@@ -278,23 +238,17 @@ function HomeDetails() {
               <p className="text-xs text-gray-400 text-center mt-3">
                 No payment required yet
               </p>
-
             </div>
           </div>
-
         </div>
 
-        {/* SIMILAR */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-6">
-            🔥 Similar stays you might like
-          </h2>
+          <h2 className="text-2xl font-semibold mb-6">Similar stays</h2>
 
-          <div className="bg-white p-6 rounded-2xl shadow-sm">
-            <SimilarHomes homes={home.similarHomes || []} />
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <SimilarHomes homes={similarHomes} />
           </div>
         </div>
-
       </div>
     </div>
   );

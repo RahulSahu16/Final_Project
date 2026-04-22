@@ -4,7 +4,7 @@ function PopularDestinations() {
   const navigate = useNavigate();
 
   const cities = [
-    { name: "Goa", image: "https://www.cleartrip.com/collections/wp-content/uploads/2018/04/Ultimate-Guide-To-Plan-Your-Summer-Trip-Goa.jpg" },
+    { name: "Goa", image: "https://img.freepik.com/premium-photo/sunset-baga-beach-goa_926199-2493040.jpg?semt=ais_hybrid&w=740&q=80" },
     { name: "Manali", image: "https://wallpaperaccess.com/full/3548729.jpg" },
     { name: "Jaipur", image: "https://c4.wallpaperflare.com/wallpaper/754/557/317/palace-of-the-winds-jaipur-rajasthan-india-wallpaper-preview.jpg" },
     { name: "Udaipur", image: "https://t4.ftcdn.net/jpg/00/85/61/27/360_F_85612737_veoCTufAsIuYJC8rjs06CA4HrLw30r8l.jpg" },

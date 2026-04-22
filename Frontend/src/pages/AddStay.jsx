@@ -24,13 +24,107 @@ const AddStay = () => {
   const [form, setForm] = useState(emptyForm);
 
   const amenitiesList = [
-    "WiFi",
-    "AC",
-    "Parking",
-    "TV",
-    "Fridge",
-    "Kitchen",
-    "Washing Machine",
+    "Free WiFi",
+  "Air Conditioning",
+  "Heating",
+  "Television",
+  "Satellite Channels",
+  "Room Service",
+  "Daily Housekeeping",
+  "Laundry Service",
+  "Dry Cleaning",
+  "Ironing Service",
+  "24-Hour Front Desk",
+  "Concierge Service",
+  "Luggage Storage",
+  "Elevator",
+  "Non-Smoking Rooms",
+  "Smoking Rooms",
+  "Family Rooms",
+  "Soundproof Rooms",
+  "Interconnecting Rooms",
+  "Private Bathroom",
+  "Bathtub",
+  "Shower",
+  "Hot Water",
+  "Free Toiletries",
+  "Hair Dryer",
+  "Towels",
+  "Bathrobes",
+  "Slippers",
+  "Minibar",
+  "Refrigerator",
+  "Microwave",
+  "Electric Kettle",
+  "Coffee Maker",
+  "Complimentary Breakfast",
+  "Restaurant",
+  "Bar",
+  "Snack Bar",
+  "Packed Lunches",
+  "Special Diet Meals",
+  "Swimming Pool",
+  "Outdoor Pool",
+  "Indoor Pool",
+  "Kids Pool",
+  "Spa",
+  "Wellness Center",
+  "Massage",
+  "Sauna",
+  "Steam Room",
+  "Fitness Center",
+  "Gym",
+  "Yoga Room",
+  "Garden",
+  "Terrace",
+  "Sun Deck",
+  "BBQ Facilities",
+  "Fireplace",
+  "Business Center",
+  "Meeting Rooms",
+  "Conference Hall",
+  "Banquet Hall",
+  "Fax/Photocopying",
+  "Free Parking",
+  "Valet Parking",
+  "Accessible Parking",
+  "Airport Shuttle",
+  "Car Rental",
+  "Taxi Service",
+  "Bicycle Rental",
+  "EV Charging Station",
+  "Wheelchair Accessible",
+  "Facilities for Disabled Guests",
+  "Braille Signage",
+  "Pet Friendly",
+  "Pet Basket",
+  "Pet Bowls",
+  "Kids Play Area",
+  "Babysitting Service",
+  "Kids Club",
+  "Game Room",
+  "Board Games",
+  "Nightclub",
+  "Live Entertainment",
+  "Beach Access",
+  "Private Beach",
+  "Water Sports",
+  "Ski Storage",
+  "Ski Equipment Rental",
+  "Golf Course",
+  "Tennis Court",
+  "Security",
+  "CCTV",
+  "Safe Deposit Box",
+  "24-Hour Security",
+  "Smoke Detectors",
+  "Fire Extinguishers",
+  "Key Card Access",
+  "Currency Exchange",
+  "ATM",
+  "Gift Shop",
+  "Salon",
+  "Doctor on Call"
   ];
 
   useEffect(() => {
@@ -132,10 +226,10 @@ const AddStay = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#d6cbbf] text-black flex justify-center px-4 py-10">
+    <div className="min-h-screen bg-[#f3f1eb] text-black flex justify-center px-4 py-10">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-3xl bg-white/10 backdrop-blur-lg p-8 rounded-2xl border border-white/20 space-y-8"
+        className="w-full max-w-3xl bg-white backdrop-blur-lg p-8 rounded-2xl border border-white/20 space-y-8"
       >
         <h2 className="text-3xl font-bold text-center">
           {editingProperty ? "Edit Your Stay" : "Add Your Stay"}
@@ -150,7 +244,7 @@ const AddStay = () => {
             name="title"
             placeholder="Property Title"
             value={form.title}
-            className="w-full p-3 rounded-xl bg-white/5 border border-white/10"
+            className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
             onChange={handleChange}
           />
 
@@ -159,7 +253,7 @@ const AddStay = () => {
             placeholder="Description"
             rows={4}
             value={form.description}
-            className="w-full p-3 rounded-xl bg-white/5 border border-white/10"
+            className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
             onChange={handleChange}
           />
         </div>
@@ -169,7 +263,7 @@ const AddStay = () => {
           name="price"
           placeholder="Price per night"
           value={form.price}
-          className="w-full p-3 rounded-xl bg-white/5 border border-white/10"
+          className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
           onChange={handleChange}
         />
 
@@ -177,7 +271,7 @@ const AddStay = () => {
           name="address"
           placeholder="Full Address (Street, Area, Landmark)"
           value={form.address}
-          className="w-full p-3 rounded-xl bg-white/5 border border-white/10"
+          className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
           onChange={handleChange}
         />
 
@@ -202,7 +296,7 @@ const AddStay = () => {
           name="totalRooms"
           placeholder="Total Rooms"
           value={form.totalRooms}
-          className="w-full p-3 rounded-xl bg-white border border-white/10"
+          className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
           onChange={handleChange}
         />
 
@@ -215,9 +309,9 @@ const AddStay = () => {
                 type="button"
                 key={item}
                 onClick={() => handleAmenities(item)}
-                className={`px-4 py-2 rounded-full text-sm transition ${
+                className={`px-4 py-2 rounded-full text-sm transition border-[#6f5e30] ${
                   form.amenities.includes(item)
-                    ? "bg-blue-500 text-white"
+                    ? "bg-[#a58d5c] text-white"
                     : "bg-white text-gray-600 border"
                 }`}
               >
@@ -228,14 +322,14 @@ const AddStay = () => {
         </div>
 
         <div>
-          <p className="mb-2">
+          <p className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]">
             {editingProperty ? "Upload New Images (optional)" : "Upload Images"}
           </p>
 
           <input type="file" multiple onChange={handleImageUpload} />
 
           {form.images.length > 0 && (
-            <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-3 gap-3 mt-4 ">
               {form.images.map((img, i) => (
                 <img
                   key={i}
@@ -252,7 +346,7 @@ const AddStay = () => {
           name="rules"
           placeholder="Property Rules"
           value={form.rules}
-          className="w-full p-3 rounded-xl bg-white border"
+          className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
           onChange={handleChange}
         />
 

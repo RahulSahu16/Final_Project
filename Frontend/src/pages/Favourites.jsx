@@ -42,7 +42,7 @@ function FavouritesPage() {
   }
 
   return (
-    <div className="min-h-screen py-10 bg-gray-50">
+    <div className="min-h-screen py-10 bg-[#f3f1eb]">
       <div className="max-w-6xl mx-auto px-6">
         <h1 className="text-3xl font-bold mb-6 text-center">
           Favourite Homes

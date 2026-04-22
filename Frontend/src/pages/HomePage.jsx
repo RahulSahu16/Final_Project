@@ -7,7 +7,7 @@ import HomePagePopularDestination from "../components/Homepage/HomePagePopularDe
 
 function Homepage() {
   return (
-    <div className="bg-[#d6d1c3] text-white min-h-screen">
+    <div className="bg-[#f3f1eb] text-black min-h-screen">
       <HomePageHeroSection />
       <HomePageSearchBar />
       <HomePagePopularDestination />

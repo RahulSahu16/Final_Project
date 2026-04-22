@@ -28,7 +28,7 @@ function AllHomes() {
     try {
       await deleteProperty(homeId);
       setHomes((prev) => prev.filter((h) => h._id !== homeId));
-    } catch (_err) {
+    } catch (err) {
       setError("Delete failed");
     }
   };
@@ -38,10 +38,8 @@ function AllHomes() {
   };
 
   return (
-    <div className="bg-[#b5ae9d]">
-      <h1 className="text-2xl font-semibold mb-6 bg-black text-white p-4 text-center mt-4">
-        All Homes
-      </h1>
+    <div className="bg-[#f3f1eb]">
+      
       {error ? <p className="text-center text-red-700">{error}</p> : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
