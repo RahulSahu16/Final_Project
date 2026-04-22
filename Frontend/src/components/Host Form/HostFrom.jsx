@@ -3,6 +3,53 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { createProperty, updateProperty } from "../../services/propertyService";
 import MapPicker from "../MapPicker";
 
+const locationOptions = {
+  India: [
+    "Andhra Pradesh",
+    "Delhi",
+    "Goa",
+    "Gujarat",
+    "Karnataka",
+    "Kerala",
+    "Maharashtra",
+    "Punjab",
+    "Rajasthan",
+    "Tamil Nadu",
+    "Telangana",
+    "Uttar Pradesh",
+    "West Bengal",
+  ],
+  "United States": [
+    "California",
+    "Florida",
+    "Illinois",
+    "New Jersey",
+    "New York",
+    "Texas",
+    "Washington",
+  ],
+  Canada: [
+    "Alberta",
+    "British Columbia",
+    "Manitoba",
+    "Ontario",
+    "Quebec",
+  ],
+  Australia: [
+    "New South Wales",
+    "Queensland",
+    "South Australia",
+    "Victoria",
+    "Western Australia",
+  ],
+  "United Kingdom": [
+    "England",
+    "Northern Ireland",
+    "Scotland",
+    "Wales",
+  ],
+};
+
 const HostForm = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -10,6 +57,9 @@ const HostForm = () => {
     title: "",
     description: "",
     price: "",
+    country: "",
+    state: "",
+    city: "",
     address: "",
     totalRooms: "",
     amenities: [],
@@ -31,6 +81,9 @@ const HostForm = () => {
         title: property.title || "",
         description: property.description || "",
         price: property.price || "",
+        country: property.country || "",
+        state: property.state || "",
+        city: property.city || "",
         address: property.address || "",
         totalRooms: property.totalRooms || "",
         amenities: property.amenities || [],
@@ -45,6 +98,15 @@ const HostForm = () => {
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleCountryChange = (e) => {
+    const selectedCountry = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      country: selectedCountry,
+      state: "",
+    }));
   };
 
   const handleAmenities = (item) => {
@@ -73,6 +135,9 @@ const HostForm = () => {
     formData.append("title", form.title);
     formData.append("description", form.description);
     formData.append("price", form.price);
+    formData.append("country", form.country);
+    formData.append("state", form.state);
+    formData.append("city", form.city);
     formData.append("address", form.address);
     formData.append("totalRooms", form.totalRooms);
     formData.append("rules", form.rules);
@@ -84,6 +149,11 @@ const HostForm = () => {
 
     if (!form.location) {
       setErrorMessage("Please select property location from map.");
+      return;
+    }
+
+    if (!form.country || !form.state || !form.city.trim()) {
+      setErrorMessage("Please select country and state, and enter city.");
       return;
     }
 
@@ -104,6 +174,9 @@ const HostForm = () => {
             title: "",
             description: "",
             price: "",
+            country: "",
+            state: "",
+            city: "",
             address: "",
             totalRooms: "",
             amenities: [],
@@ -154,15 +227,61 @@ const HostForm = () => {
           onChange={handleChange}
         />
 
-        {/* Location */}
+        {/* Country */}
+        <select
+          name="country"
+          value={form.country}
+          className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white border border-[#b5ae9d]/30 focus:outline-none focus:ring-2 focus:ring-[#b5ae9d]"
+          onChange={handleCountryChange}
+        >
+          <option value="" className="text-black">
+            Select Country
+          </option>
+          {Object.keys(locationOptions).map((country) => (
+            <option key={country} value={country} className="text-black">
+              {country}
+            </option>
+          ))}
+        </select>
+
+        {/* State */}
+        <select
+          name="state"
+          value={form.state}
+          className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white border border-[#b5ae9d]/30 focus:outline-none focus:ring-2 focus:ring-[#b5ae9d] disabled:opacity-60"
+          onChange={handleChange}
+          disabled={!form.country}
+        >
+          <option value="" className="text-black">
+            {form.country ? "Select State" : "Select Country First"}
+          </option>
+          {(locationOptions[form.country] || []).map((stateName) => (
+            <option key={stateName} value={stateName} className="text-black">
+              {stateName}
+            </option>
+          ))}
+        </select>
+
+        {/* City */}
         <input
           type="text"
-          name="address"
-          value={form.address}
-          placeholder="Location"
+          name="city"
+          value={form.city}
+          placeholder="City"
           className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white placeholder:text-gray-200 border border-[#b5ae9d]/30 focus:outline-none focus:ring-2 focus:ring-[#b5ae9d]"
           onChange={handleChange}
         />
+
+        {/* Address */}
+        <textarea
+          name="address"
+          value={form.address}
+          placeholder="Address"
+          rows="4"
+          className="w-full p-3 rounded-xl bg-[#b5ae9d]/20 text-white placeholder:text-gray-200 border border-[#b5ae9d]/30 focus:outline-none focus:ring-2 focus:ring-[#b5ae9d]"
+          onChange={handleChange}
+        />
+
 
         {/* 🗺️ MAP BELOW LOCATION */}
         <div>
@@ -250,11 +369,14 @@ const HostForm = () => {
           onChange={handleChange}
         />
         {/* Submit */}
-        <button 
+        <button
           type="submit"
-          className="w-full py-3 rounded-xl bg-[#b5ae9d] hover:bg-[#a39c8d] text-black font-semibold transition-all"
+          disabled={loading}
+          className="w-full py-3 rounded-xl bg-[#b5ae9d] hover:bg-[#a39c8d] text-black font-semibold transition-all disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          {isEditing ? "Update Property" : "Submit Property"}
+          {loading
+            ? (isEditing ? "Updating..." : "Submitting...")
+            : (isEditing ? "Update Property" : "Submit Property")}
         </button>
       </form>
     </div>

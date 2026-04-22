@@ -69,7 +69,15 @@ export const deleteProperty = async (propertyId, userId) => {
 export const searchProperties = async ({ city, checkIn, checkOut }) => {
   const searchRegex = city ? new RegExp(city, "i") : null;
   const filters = searchRegex
-    ? { $or: [{ address: { $regex: searchRegex } }, { title: { $regex: searchRegex } }] }
+    ? {
+        $or: [
+          { city: { $regex: searchRegex } },
+          { state: { $regex: searchRegex } },
+          { country: { $regex: searchRegex } },
+          { address: { $regex: searchRegex } },
+          { title: { $regex: searchRegex } },
+        ],
+      }
     : {};
 
   const properties = await Property.find(filters).populate("owner", "name email");

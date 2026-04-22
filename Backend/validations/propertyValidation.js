@@ -4,6 +4,9 @@ export const createPropertySchema = Joi.object({
   title: Joi.string().trim().min(3).max(120).required(),
   description: Joi.string().trim().min(10).required(),
   price: Joi.number().positive().required(),
+  country: Joi.string().trim().min(2).required(),
+  state: Joi.string().trim().min(2).required(),
+  city: Joi.string().trim().min(2).required(),
   address: Joi.string().trim().min(3).required(),
   totalRooms: Joi.number().integer().min(1).required(),
   amenities: Joi.alternatives()
