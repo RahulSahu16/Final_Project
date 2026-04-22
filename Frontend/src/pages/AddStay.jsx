@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import MapPicker from "../components/MapPicker";
 import { createProperty, updateProperty } from "../services/propertyService";
+import { generatePropertyDescription } from "../services/aiService";
 
 const locationOptions = {
   India: [
@@ -82,6 +83,7 @@ const AddStay = () => {
   const location = useLocation();
   const editingProperty = location.state?.property || null;
   const [loading, setLoading] = useState(false);
+  const [descriptionLoading, setDescriptionLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [form, setForm] = useState(emptyForm);
 
@@ -238,6 +240,43 @@ const AddStay = () => {
     setForm((prev) => ({ ...prev, images: files }));
   };
 
+  const handleGenerateDescription = async () => {
+    setErrorMessage("");
+
+    if (!form.title || !form.country || !form.state || !form.city || !form.address) {
+      setErrorMessage("Please fill title, location, and address details before generating a description.");
+      return;
+    }
+
+    try {
+      setDescriptionLoading(true);
+      const response = await generatePropertyDescription({
+        title: form.title,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        country: form.country,
+        price: form.price,
+        totalRooms: form.totalRooms,
+        amenities: form.amenities,
+        rules: form.rules,
+      });
+
+      if (response?.description) {
+        setForm((prev) => ({ ...prev, description: response.description }));
+      } else {
+        setErrorMessage("I could not generate a description right now.");
+      }
+    } catch (err) {
+      setErrorMessage(
+        err.response?.data?.error ||
+          "Description generation failed. Please try again."
+      );
+    } finally {
+      setDescriptionLoading(false);
+    }
+  };
+
   const handleLocationSelect = (coords) => {
     setForm((prev) => ({
       ...prev,
@@ -334,14 +373,31 @@ const AddStay = () => {
             onChange={handleChange}
           />
 
-          <textarea
-            name="description"
-            placeholder="Description"
-            rows={4}
-            value={form.description}
-            className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
-            onChange={handleChange}
-          />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-medium">Description</p>
+              <button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={descriptionLoading}
+                className="rounded-full bg-[#6f5e30] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#5a4b26] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {descriptionLoading ? "Generating..." : "Generate Description"}
+              </button>
+            </div>
+
+            <textarea
+              name="description"
+              placeholder="Description"
+              rows={5}
+              value={form.description}
+              className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
+              onChange={handleChange}
+            />
+            <p className="text-xs text-gray-600">
+              Use the button to generate a polished 180-200 word description from the form details.
+            </p>
+          </div>
         </div>
 
         <input
