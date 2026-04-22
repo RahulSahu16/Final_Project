@@ -3,10 +3,72 @@ import { useLocation, useNavigate } from "react-router-dom";
 import MapPicker from "../components/MapPicker";
 import { createProperty, updateProperty } from "../services/propertyService";
 
+const locationOptions = {
+  India: [
+    "Andaman and Nicobar Islands",
+    "Andhra Pradesh",
+    "Arunachal Pradesh",
+    "Assam",
+    "Bihar",
+    "Chandigarh",
+    "Chhattisgarh",
+    "Dadra and Nagar Haveli and Daman and Diu",
+    "Delhi",
+    "Goa",
+    "Gujarat",
+    "Haryana",
+    "Himachal Pradesh",
+    "Jammu and Kashmir",
+    "Jharkhand",
+    "Karnataka",
+    "Kerala",
+    "Ladakh",
+    "Lakshadweep",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Manipur",
+    "Meghalaya",
+    "Mizoram",
+    "Nagaland",
+    "Odisha",
+    "Puducherry",
+    "Punjab",
+    "Rajasthan",
+    "Sikkim",
+    "Tamil Nadu",
+    "Telangana",
+    "Tripura",
+    "Uttar Pradesh",
+    "Uttarakhand",
+    "West Bengal",
+  ],
+  "United States": [
+    "California",
+    "Florida",
+    "Illinois",
+    "New Jersey",
+    "New York",
+    "Texas",
+    "Washington",
+  ],
+  Canada: ["Alberta", "British Columbia", "Manitoba", "Ontario", "Quebec"],
+  Australia: [
+    "New South Wales",
+    "Queensland",
+    "South Australia",
+    "Victoria",
+    "Western Australia",
+  ],
+  "United Kingdom": ["England", "Northern Ireland", "Scotland", "Wales"],
+};
+
 const emptyForm = {
   title: "",
   description: "",
   price: "",
+  country: "",
+  state: "",
+  city: "",
   address: "",
   location: null,
   totalRooms: "",
@@ -137,6 +199,9 @@ const AddStay = () => {
       title: editingProperty.title || "",
       description: editingProperty.description || "",
       price: editingProperty.price || "",
+      country: editingProperty.country || "",
+      state: editingProperty.state || "",
+      city: editingProperty.city || "",
       address: editingProperty.address || "",
       location: editingProperty.location || null,
       totalRooms: editingProperty.totalRooms || "",
@@ -148,6 +213,15 @@ const AddStay = () => {
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleCountryChange = (e) => {
+    const selectedCountry = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      country: selectedCountry,
+      state: "",
+    }));
   };
 
   const handleAmenities = (item) => {
@@ -176,7 +250,16 @@ const AddStay = () => {
     e.preventDefault();
     setErrorMessage("");
 
-    if (!form.title || !form.description || !form.price || !form.address || !form.totalRooms) {
+    if (
+      !form.title ||
+      !form.description ||
+      !form.price ||
+      !form.country ||
+      !form.state ||
+      !form.city ||
+      !form.address ||
+      !form.totalRooms
+    ) {
       setErrorMessage("Please fill all required fields.");
       return;
     }
@@ -193,6 +276,9 @@ const AddStay = () => {
       formData.append("title", form.title);
       formData.append("description", form.description);
       formData.append("price", form.price);
+      formData.append("country", form.country);
+      formData.append("state", form.state);
+      formData.append("city", form.city);
       formData.append("address", form.address);
       formData.append("totalRooms", form.totalRooms);
       formData.append("rules", form.rules);
@@ -267,10 +353,51 @@ const AddStay = () => {
           onChange={handleChange}
         />
 
+        <select
+          name="country"
+          value={form.country}
+          className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
+          onChange={handleCountryChange}
+        >
+          <option value="">Select Country</option>
+          {Object.keys(locationOptions).map((country) => (
+            <option key={country} value={country}>
+              {country}
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="state"
+          value={form.state}
+          className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4] disabled:opacity-60"
+          onChange={handleChange}
+          disabled={!form.country}
+        >
+          <option value="">
+            {form.country ? "Select State" : "Select Country First"}
+          </option>
+          {(locationOptions[form.country] || []).map((stateName) => (
+            <option key={stateName} value={stateName}>
+              {stateName}
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="text"
+          name="city"
+          placeholder="City"
+          value={form.city}
+          className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
+          onChange={handleChange}
+        />
+
         <textarea
           name="address"
           placeholder="Full Address (Street, Area, Landmark)"
           value={form.address}
+          rows={4}
           className="w-full p-3 rounded-xl border border-[#6f5e30] bg-[#f7f6f4]"
           onChange={handleChange}
         />
@@ -353,7 +480,7 @@ const AddStay = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-60"
+          className="w-full py-3 rounded-xl bg-[#6f5e30] hover:bg-[#5a4b26] text-white disabled:opacity-60"
         >
           {loading
             ? editingProperty
