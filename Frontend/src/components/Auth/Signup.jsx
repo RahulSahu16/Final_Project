@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { sendSignupOtp, verifySignupOtp, register, loginWithGoogle } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
-import { requestGoogleIdToken } from "../../utils/googleAuth";
+import { GOOGLE_CLIENT_ID, requestGoogleIdToken } from "../../utils/googleAuth";
 
 export default function Signup({ switchToLogin }) {
   const [step, setStep] = useState(1);
@@ -261,26 +261,32 @@ export default function Signup({ switchToLogin }) {
         </button>
       </>
 
-      {/* Divider */}
-      <div className="flex items-center my-5">
-        <div className="flex-1 h-px bg-gray-300"></div>
-        <span className="px-3 text-gray-500 text-sm">or</span>
-        <div className="flex-1 h-px bg-gray-300"></div>
-      </div>
+      {GOOGLE_CLIENT_ID ? (
+        <>
+          <div className="flex items-center my-5">
+            <div className="flex-1 h-px bg-gray-300"></div>
+            <span className="px-3 text-gray-500 text-sm">or</span>
+            <div className="flex-1 h-px bg-gray-300"></div>
+          </div>
 
-      {/* Google Signup */}
-      <button
-        type="button"
-        onClick={handleGoogleSignup}
-        disabled={loading}
-        className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <img
-          src="https://www.svgrepo.com/show/475656/google-color.svg"
-          className="w-5 h-5"
-        />
-        {loading ? "Please wait..." : "Signup with Google"}
-      </button>
+          <button
+            type="button"
+            onClick={handleGoogleSignup}
+            disabled={loading}
+            className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <img
+              src="https://www.svgrepo.com/show/475656/google-color.svg"
+              className="w-5 h-5"
+            />
+            {loading ? "Please wait..." : "Signup with Google"}
+          </button>
+        </>
+      ) : (
+        <p className="mt-5 text-center text-xs text-gray-500">
+          Google signup will appear after `VITE_GOOGLE_CLIENT_ID` is configured.
+        </p>
+      )}
 
       {/* Switch */}
       <p className="text-center text-sm mt-5">
