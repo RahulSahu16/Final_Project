@@ -1,8 +1,8 @@
-import Amenities from "../components/homeDetails/Amenities";
-import Reviews from "../components/homeDetails/Reviews";
-import SimilarHomes from "../components/homeDetails/SimilarHomes";
-import HostInfo from "../components/homeDetails/HostInfo";
-import ImageGallery from "../components/homeDetails/ImageGallery";
+import Amenities from "../components/HomeDetails/Amenities";
+import Reviews from "../components/HomeDetails/Reviews";
+import SimilarHomes from "../components/HomeDetails/SimilarHomes";
+import HostInfo from "../components/HomeDetails/HostInfo";
+import ImageGallery from "../components/HomeDetails/ImageGallery";
 
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
