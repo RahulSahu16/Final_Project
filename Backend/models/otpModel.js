@@ -5,6 +5,7 @@ const otpSchema = new mongoose.Schema({
     type: String,
     required: true,
     lowercase: true,
+    trim: true,
   },
   otp: {
     type: String,
@@ -18,7 +19,9 @@ const otpSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-});
+}, { timestamps: true });
+
+otpSchema.index({ email: 1 });
 
 const OTP = mongoose.model("OTP", otpSchema);
 

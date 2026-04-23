@@ -1,6 +1,22 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/apiResponse.js";
-import { registerUser, loginUser, becomeHost as becomeHostService } from "../services/authService.js";
+import {
+  sendOtp as sendOtpService,
+  verifyOtp as verifyOtpService,
+  registerUser,
+  loginUser,
+  becomeHost as becomeHostService,
+} from "../services/authService.js";
+
+export const sendOtp = asyncHandler(async (req, res) => {
+  const result = await sendOtpService(req.body);
+  return sendSuccess(res, "OTP sent successfully", result);
+});
+
+export const verifyOtp = asyncHandler(async (req, res) => {
+  const result = await verifyOtpService(req.body);
+  return sendSuccess(res, "OTP verified successfully", result);
+});
 
 export const register = asyncHandler(async (req, res) => {
   const result = await registerUser(req.body);
