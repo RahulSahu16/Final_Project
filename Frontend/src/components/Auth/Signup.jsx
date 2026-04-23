@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { sendSignupOtp, verifySignupOtp, register } from "../../services/authService";
+import { sendSignupOtp, verifySignupOtp, register, loginWithGoogle } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
+import { requestGoogleIdToken } from "../../utils/googleAuth";
 
 export default function Signup({ switchToLogin }) {
   const [step, setStep] = useState(1);
@@ -121,6 +122,29 @@ export default function Signup({ switchToLogin }) {
     }
 
     handleCreateAccount();
+  };
+
+  const handleGoogleSignup = async () => {
+    try {
+      setLoading(true);
+      setMessage("");
+      const idToken = await requestGoogleIdToken();
+      const data = await loginWithGoogle({ idToken });
+      if (!data?.token || !data?.user) {
+        throw new Error("Unexpected Google signup response from server");
+      }
+      login(data);
+      navigate("/");
+    } catch (error) {
+      const serverMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Google signup failed.";
+      setMessage(serverMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -245,12 +269,17 @@ export default function Signup({ switchToLogin }) {
       </div>
 
       {/* Google Signup */}
-      <button className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100">
+      <button
+        type="button"
+        onClick={handleGoogleSignup}
+        disabled={loading}
+        className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+      >
         <img
           src="https://www.svgrepo.com/show/475656/google-color.svg"
           className="w-5 h-5"
         />
-        Signup with Google
+        {loading ? "Please wait..." : "Signup with Google"}
       </button>
 
       {/* Switch */}

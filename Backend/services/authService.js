@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import OTP from "../models/otpModel.js";
 import AppError from "../utils/appError.js";
@@ -9,6 +11,8 @@ const signToken = (user) =>
   jwt.sign({ id: user._id, roles: user.roles }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const normalizeEmail = (email) => email.trim().toLowerCase();
 
@@ -134,6 +138,58 @@ export const registerUser = async ({ email, firstName, lastName, password }) => 
   });
 
   await OTP.deleteMany({ email: normalizedEmail });
+
+  return {
+    token: signToken(user),
+    user: shapeUser(user),
+  };
+};
+
+export const authenticateWithGoogle = async ({ idToken }) => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    throw new AppError("Google login is not configured on the server.", 500);
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    throw new AppError("Invalid Google account token.", 401);
+  }
+
+  if (!payload?.email) {
+    throw new AppError("Google account email not available.", 400);
+  }
+
+  const normalizedEmail = normalizeEmail(payload.email);
+  const firstName = payload.given_name?.trim() || payload.name?.split(" ")[0] || "Google";
+  const lastName = payload.family_name?.trim() || payload.name?.split(" ").slice(1).join(" ") || "User";
+  const fullName = buildDisplayName(firstName, lastName, payload.name || normalizedEmail);
+
+  let user = await User.findOne({ email: normalizedEmail });
+
+  if (!user) {
+    user = await User.create({
+      email: normalizedEmail,
+      firstName,
+      lastName,
+      name: fullName,
+      googleId: payload.sub,
+      authProvider: "google",
+      password: await bcrypt.hash(crypto.randomUUID(), 12),
+    });
+  } else {
+    user.firstName = user.firstName || firstName;
+    user.lastName = user.lastName || lastName;
+    user.name = user.name || fullName;
+    user.googleId = user.googleId || payload.sub;
+    user.authProvider = user.authProvider || "google";
+    await user.save();
+  }
 
   return {
     token: signToken(user),

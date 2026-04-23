@@ -4,6 +4,7 @@ import {
   sendOtp as sendOtpService,
   verifyOtp as verifyOtpService,
   registerUser,
+  authenticateWithGoogle,
   loginUser,
   becomeHost as becomeHostService,
 } from "../services/authService.js";
@@ -21,6 +22,11 @@ export const verifyOtp = asyncHandler(async (req, res) => {
 export const register = asyncHandler(async (req, res) => {
   const result = await registerUser(req.body);
   return sendSuccess(res, "User registered successfully", result, 201);
+});
+
+export const googleAuth = asyncHandler(async (req, res) => {
+  const result = await authenticateWithGoogle(req.body);
+  return sendSuccess(res, "Google authentication successful", result);
 });
 
 export const login = asyncHandler(async (req, res) => {

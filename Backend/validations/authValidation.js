@@ -16,6 +16,10 @@ export const registerSchema = Joi.object({
   password: Joi.string().min(6).max(64).required(),
 });
 
+export const googleAuthSchema = Joi.object({
+  idToken: Joi.string().trim().required(),
+});
+
 export const loginSchema = Joi.object({
   email: Joi.string().trim().email().required(),
   password: Joi.string().required(),

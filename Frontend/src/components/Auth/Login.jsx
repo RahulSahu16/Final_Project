@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import { login as loginApi } from "../../services/authService";
+import { login as loginApi, loginWithGoogle } from "../../services/authService";
 import { useAuth } from "../../hooks/useAuth";
+import { requestGoogleIdToken } from "../../utils/googleAuth";
 
 export default function Login({ switchToSignup }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +35,29 @@ export default function Login({ switchToSignup }) {
         error.response?.data?.error ||
         error.message ||
         "Login failed.";
+      setMessage(serverMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setLoading(true);
+      setMessage("");
+      const idToken = await requestGoogleIdToken();
+      const data = await loginWithGoogle({ idToken });
+      if (!data?.token || !data?.user) {
+        throw new Error("Unexpected Google login response from server");
+      }
+      login(data);
+      navigate("/");
+    } catch (error) {
+      const serverMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Google login failed.";
       setMessage(serverMessage);
     } finally {
       setLoading(false);
@@ -113,13 +137,18 @@ export default function Login({ switchToSignup }) {
       </div>
 
       {/* Google Login */}
-      <button className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 transition">
+      <button
+        type="button"
+        onClick={handleGoogleLogin}
+        disabled={loading}
+        className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 transition disabled:cursor-not-allowed disabled:opacity-60"
+      >
         <img
           src="https://www.svgrepo.com/show/475656/google-color.svg"
           alt="google"
           className="w-5 h-5 "
         />
-        Login with Google
+        {loading ? "Please wait..." : "Login with Google"}
       </button>
 
       {/* Switch to Signup */}
